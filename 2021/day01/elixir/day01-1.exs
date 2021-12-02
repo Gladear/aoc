@@ -1,0 +1,6 @@
+File.stream!("../input.txt")
+|> Stream.map(&String.trim/1)
+|> Stream.map(&String.to_integer/1)
+|> Stream.chunk_every(2, 1, :discard)
+|> Enum.count(fn [l1, l2] -> l2 > l1 end)
+|> IO.puts()
