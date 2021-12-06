@@ -1,51 +1,35 @@
 defmodule Submarine do
-  defp most_common?(col) do
-    %{"0" => zero_count, "1" => one_count} = Enum.frequencies(col)
-    if zero_count > one_count, do: "0", else: "1"
+  defp recur([number], _pos, _fun) do
+    number
+    |> Tuple.to_list()
+    |> List.to_integer(2)
   end
 
-  defp least_common?(col) do
-    %{"0" => zero_count, "1" => one_count} = Enum.frequencies(col)
-    if zero_count <= one_count, do: "0", else: "1"
+  defp recur(numbers, pos, fun) do
+    zero_count = Enum.count(numbers, &(elem(&1, pos) == ?0))
+    one_count = length(numbers) - zero_count
+    to_keep = fun.(zero_count, one_count)
+    numbers = Enum.filter(numbers, &(elem(&1, pos) == to_keep))
+    recur(numbers, pos + 1, fun)
   end
 
-  defp get_col(rows, col_idx) do
-    Enum.map(rows, &Enum.at(&1, col_idx))
-  end
-
-  defp get_internal(rows, func) do
-    0..11
-    |> Enum.reduce(_acc = rows, fn
-      _col_idx, rows when length(rows) == 1 ->
-        rows
-
-      col_idx, rows ->
-        determinant =
-          rows
-          |> get_col(col_idx)
-          |> func.()
-
-        Enum.filter(rows, &(Enum.at(&1, col_idx) == determinant))
+  def o2(numbers) do
+    recur(numbers, 0, fn zero_count, one_count ->
+      if one_count >= zero_count, do: ?1, else: ?0
     end)
-    |> Enum.join("")
-    |> String.to_integer(2)
   end
 
-  def get(rows, :O2) do
-    get_internal(rows, &most_common?/1)
-  end
-
-  def get(rows, :CO2) do
-    get_internal(rows, &least_common?/1)
+  def co2(numbers) do
+    recur(numbers, 0, fn zero_count, one_count ->
+      if zero_count <= one_count, do: ?0, else: ?1
+    end)
   end
 end
 
-rows =
+
+numbers = 
   File.stream!("../input.txt")
-  |> Stream.map(&String.trim/1)
-  |> Enum.map(&String.split(&1, "", trim: true))
+  |> Enum.map(&(&1 |> String.trim() |> String.to_charlist() |> List.to_tuple()))
 
-o2 = Submarine.get(rows, :O2)
-co2 = Submarine.get(rows, :CO2)
-
-IO.puts(o2 * co2)
+Submarine.o2(numbers) * Submarine.co2(numbers)
+|> IO.puts()
