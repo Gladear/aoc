@@ -1,0 +1,58 @@
+# day03
+
+## Part 1
+
+```elixir
+defmodule Rucksack do
+  def compartments(line) do
+    mid_pos = div(String.length(line), 2)
+
+    line
+    |> String.to_charlist()
+    |> Enum.split(mid_pos)
+  end
+
+  def item_priority(char) when char >= ?a and char <= ?z, do: char - ?a + 1
+  def item_priority(char) when char >= ?A and char <= ?Z, do: 26 + char - ?A + 1
+end
+```
+
+```elixir
+File.stream!("./workspace/aoc/2022/input.txt")
+|> Stream.map(&String.trim/1)
+|> Stream.map(&Rucksack.compartments/1)
+|> Stream.flat_map(fn {a, b} ->
+  diff = List.myers_difference(a, b)
+  Enum.uniq(diff[:eq])
+end)
+|> Stream.map(&Rucksack.item_priority/1)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+defmodule Rucksack do
+  def item_priority(char) when char >= ?a and char <= ?z, do: char - ?a + 1
+  def item_priority(char) when char >= ?A and char <= ?Z, do: 26 + (char - ?A) + 1
+end
+```
+
+```elixir
+File.stream!("./workspace/aoc/2022/input.txt")
+|> Stream.map(&String.trim/1)
+|> Stream.map(&String.to_charlist/1)
+|> Stream.chunk_every(3)
+|> Stream.flat_map(fn [a, b, c] ->
+  a = MapSet.new(a)
+  b = MapSet.new(b)
+  c = MapSet.new(c)
+
+  a
+  |> MapSet.intersection(b)
+  |> MapSet.intersection(c)
+  |> Enum.to_list()
+end)
+|> Stream.map(&Rucksack.item_priority/1)
+|> Enum.sum()
+```
