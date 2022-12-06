@@ -1,0 +1,112 @@
+# Day 05
+
+## Part 1
+
+```elixir
+[raw_stacks, raw_ops] =
+  "./2022/day05input.txt"
+  |> File.read!()
+  |> String.split("\n\n")
+
+clean_stacks =
+  raw_stacks
+  |> String.to_charlist()
+  |> Enum.chunk_every(4)
+  |> Enum.map(&(&1 |> to_string() |> String.trim()))
+
+nb_stacks = clean_stacks |> List.last() |> String.to_integer()
+
+stacks =
+  clean_stacks
+  |> Enum.chunk_every(nb_stacks)
+  |> Enum.zip_with(& &1)
+  |> Map.new(fn line ->
+    [group | reversed] = Enum.reverse(line)
+    values = reversed |> Enum.reverse() |> Enum.reject(&(&1 == ""))
+    {group, values}
+  end)
+
+ops = String.split(raw_ops, "\n")
+
+Enum.reduce(
+  ops,
+  stacks,
+  fn
+    "", stacks ->
+      stacks
+
+    line, stacks ->
+      [_move, count_str, _from, start_pos, _to, end_pos] = String.split(line)
+      count = String.to_integer(count_str)
+
+      start_values = Map.fetch!(stacks, start_pos)
+      {moved, new_start_values} = Enum.split(start_values, count)
+      new_end_values = Enum.reverse(moved) ++ Map.fetch!(stacks, end_pos)
+
+      stacks
+      |> Map.put(start_pos, new_start_values)
+      |> Map.put(end_pos, new_end_values)
+  end
+)
+|> Enum.to_list()
+|> Enum.sort_by(&elem(&1, 0))
+|> Enum.map(fn {_group, stack} -> stack |> List.first() |> String.at(1) end)
+|> Enum.join()
+```
+
+This is the most awful piece of code I've written in ages. But it works
+
+## Part 2
+
+```elixir
+[raw_stacks, raw_ops] =
+  "./2022/day05input.txt"
+  |> File.read!()
+  |> String.split("\n\n")
+
+clean_stacks =
+  raw_stacks
+  |> String.to_charlist()
+  |> Enum.chunk_every(4)
+  |> Enum.map(&(&1 |> to_string() |> String.trim()))
+
+nb_stacks = clean_stacks |> List.last() |> String.to_integer()
+
+stacks =
+  clean_stacks
+  |> Enum.chunk_every(nb_stacks)
+  |> Enum.zip_with(& &1)
+  |> Map.new(fn line ->
+    [group | reversed] = Enum.reverse(line)
+    values = reversed |> Enum.reverse() |> Enum.reject(&(&1 == ""))
+    {group, values}
+  end)
+
+ops = String.split(raw_ops, "\n")
+
+Enum.reduce(
+  ops,
+  stacks,
+  fn
+    "", stacks ->
+      stacks
+
+    line, stacks ->
+      [_move, count_str, _from, start_pos, _to, end_pos] = String.split(line)
+      count = String.to_integer(count_str)
+
+      start_values = Map.fetch!(stacks, start_pos)
+      {moved, new_start_values} = Enum.split(start_values, count)
+      # Removed the reverse, lol
+      new_end_values = moved ++ Map.fetch!(stacks, end_pos)
+
+      stacks
+      |> Map.put(start_pos, new_start_values)
+      |> Map.put(end_pos, new_end_values)
+  end
+)
+|> Enum.to_list()
+|> Enum.sort_by(&elem(&1, 0))
+|> Enum.map(fn {_group, stack} -> stack |> List.first() |> String.at(1) end)
+|> Enum.join()
+```
