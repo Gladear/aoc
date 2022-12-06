@@ -1,0 +1,23 @@
+# Day04
+
+## Part 1
+
+```elixir
+File.stream!("./2022/day04input.txt")
+|> Stream.map(&String.trim/1)
+|> Enum.count(fn line ->
+  [s1, e1, s2, e2] = line |> String.split(~r/,|-/) |> Enum.map(&String.to_integer/1)
+  (s1 <= s2 and e2 <= e1) or (s2 <= s1 and e1 <= e2)
+end)
+```
+
+## Part 2
+
+```elixir
+File.stream!("./2022/day04input.txt")
+|> Stream.map(&String.trim/1)
+|> Enum.count(fn line ->
+  [s1, e1, s2, e2] = line |> String.split(~r/,|-/) |> Enum.map(&String.to_integer/1)
+  s2 <= e1 and s1 <= e2
+end)
+```
