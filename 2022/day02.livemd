@@ -32,7 +32,7 @@ end
 ```
 
 ```elixir
-File.stream!("./input.txt")
+File.stream!("./2022/day02input.txt")
 |> Stream.map(fn <<raw_opponent::8, " ", raw_played::8, "\n">> ->
   opponent =
     case raw_opponent do
@@ -51,7 +51,6 @@ File.stream!("./input.txt")
   Game.round_score({opponent, played})
 end)
 |> Enum.sum()
-|> dbg()
 ```
 
 ## Part 2
@@ -100,7 +99,7 @@ end
 ```
 
 ```elixir
-File.stream!("./input.txt")
+File.stream!("./2022/day02input.txt")
 |> Stream.map(fn <<raw_opponent::8, " ", raw_status::8, "\n">> ->
   opponent =
     case raw_opponent do
@@ -119,5 +118,4 @@ File.stream!("./input.txt")
   Game.round_score({opponent, status})
 end)
 |> Enum.sum()
-|> dbg()
 ```
