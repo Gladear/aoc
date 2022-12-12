@@ -1,0 +1,78 @@
+# Day 08
+
+```elixir
+lines =
+  File.stream!("./2022/day08input.txt")
+  |> Stream.map(&String.trim/1)
+
+grid =
+  for {line, row} <- Enum.with_index(lines),
+      {height, col} <- Enum.with_index(to_charlist(line)),
+      into: %{} do
+    {{row, col}, height - ?0}
+  end
+```
+
+## Part 1
+
+```elixir
+square_size = Enum.count(lines)
+square_max_idx = square_size - 1
+
+Enum.count(grid, fn
+  {{row, col}, _height} when row in [0, square_max_idx] or col in [0, square_max_idx] ->
+    true
+
+  {{row, col}, height} ->
+    Enum.all?(0..(row - 1), &(grid[{&1, col}] < height)) or
+      Enum.all?((row + 1)..square_max_idx, &(grid[{&1, col}] < height)) or
+      Enum.all?(0..(col - 1), &(grid[{row, &1}] < height)) or
+      Enum.all?((col + 1)..square_max_idx, &(grid[{row, &1}] < height))
+end)
+```
+
+## Part 2
+
+```elixir
+square_size = Enum.count(lines)
+square_max_idx = square_size - 1
+
+maybe_count_until = fn
+  _enum, 0 -> 0
+  enum, limit -> Enum.count_until(enum, limit)
+end
+
+grid
+|> Enum.map(fn
+  {{row, col}, _height} when row in [0, square_max_idx] or col in [0, square_max_idx] ->
+    0
+
+  {{row, col}, height} ->
+    top =
+      (row - 1)..0
+      |> Enum.take_while(&(grid[{&1, col}] < height))
+      |> maybe_count_until.(row - 1)
+      |> Kernel.+(1)
+
+    right =
+      (col + 1)..square_max_idx
+      |> Enum.take_while(&(grid[{row, &1}] < height))
+      |> maybe_count_until.(square_max_idx - col - 1)
+      |> Kernel.+(1)
+
+    bottom =
+      (row + 1)..square_max_idx
+      |> Enum.take_while(&(grid[{&1, col}] < height))
+      |> maybe_count_until.(square_max_idx - row - 1)
+      |> Kernel.+(1)
+
+    left =
+      (col - 1)..0
+      |> Enum.take_while(&(grid[{row, &1}] < height))
+      |> maybe_count_until.(col - 1)
+      |> Kernel.+(1)
+
+    top * right * bottom * left
+end)
+|> Enum.max()
+```
