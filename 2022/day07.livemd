@@ -1,0 +1,86 @@
+# Day 07
+
+## Part 1
+
+```elixir
+File.stream!("./2022/day07input.txt")
+|> Stream.map(&String.trim/1)
+|> Stream.drop(1)
+|> Enum.reduce({[0], 0}, fn
+  "$ cd ..", {[cur_size, parent_size | rest], total_size} ->
+    new_path = [cur_size + parent_size | rest]
+
+    if cur_size <= 100_000 do
+      {new_path, total_size + cur_size}
+    else
+      {new_path, total_size}
+    end
+
+  "$ cd " <> _dir, {path, total_size} ->
+    {[0 | path], total_size}
+
+  "$ ls", fs ->
+    fs
+
+  "dir " <> _, fs ->
+    fs
+
+  file_entry, {[cur_size | rest], total_size} ->
+    [raw_size, _] = String.split(file_entry)
+    {[cur_size + String.to_integer(raw_size) | rest], total_size}
+end)
+|> elem(1)
+```
+
+## Part 2
+
+```elixir
+input = File.stream!("./2022/day07input.txt")
+
+file_entry_size = fn file_entry ->
+  [raw_size, _] = String.split(file_entry)
+  String.to_integer(raw_size)
+end
+
+total_space = 70_000_000
+required_space = 30_000_000
+
+used_space =
+  input
+  |> Enum.map(fn
+    "$ " <> _ -> 0
+    "dir " <> _ -> 0
+    file_entry -> file_entry_size.(file_entry)
+  end)
+  |> Enum.sum()
+
+available_space = total_space - used_space
+need_to_clean = required_space - available_space
+
+input
+|> Stream.map(&String.trim/1)
+|> Stream.drop(1)
+|> Enum.reduce({[0], total_space}, fn
+  "$ cd ..", {[cur_size, parent_size | rest], min_dir_size} ->
+    new_path = [cur_size + parent_size | rest]
+
+    if cur_size >= need_to_clean and cur_size < min_dir_size do
+      {new_path, cur_size}
+    else
+      {new_path, min_dir_size}
+    end
+
+  "$ cd " <> _dir, {path, min_dir_size} ->
+    {[0 | path], min_dir_size}
+
+  "$ ls", fs ->
+    fs
+
+  "dir " <> _, fs ->
+    fs
+
+  file_entry, {[cur_size | rest], min_dir_size} ->
+    size = file_entry_size.(file_entry)
+    {[cur_size + size | rest], min_dir_size}
+end)
+```
