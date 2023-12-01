@@ -1,0 +1,75 @@
+# day01
+
+```elixir
+input = File.stream!("./2023/input_day01.txt")
+```
+
+## Common
+
+```elixir
+defmodule Undigiter do
+  def parse([digit]), do: Integer.undigits([digit, digit])
+  def parse([_, _] = number), do: Integer.undigits(number)
+
+  def parse(number) do
+    first = List.first(number)
+    last = List.last(number)
+
+    Integer.undigits([first, last])
+  end
+end
+```
+
+## Part 01
+
+```elixir
+input
+|> Stream.map(&to_charlist/1)
+|> Stream.map(fn line -> Enum.filter(line, &(&1 in ?0..?9)) end)
+|> Stream.map(fn line -> Enum.map(line, &(&1 - ?0)) end)
+|> Stream.map(&Undigiter.parse/1)
+|> Enum.sum()
+```
+
+## Part 02
+
+```elixir
+digits = %{
+  "1" => 1,
+  "one" => 1,
+  "2" => 2,
+  "two" => 2,
+  "3" => 3,
+  "three" => 3,
+  "4" => 4,
+  "four" => 4,
+  "5" => 5,
+  "five" => 5,
+  "6" => 6,
+  "six" => 6,
+  "7" => 7,
+  "seven" => 7,
+  "8" => 8,
+  "eight" => 8,
+  "9" => 9,
+  "nine" => 9
+}
+
+regex = digits |> Map.keys() |> Enum.join("|") |> Regex.compile!()
+
+input
+|> Stream.map(fn line ->
+  0..String.length(line)
+  |> Enum.map(fn offset ->
+    Regex.run(regex, line, capture: :first, offset: offset)
+  end)
+  |> List.flatten()
+  |> Enum.reject(&is_nil/1)
+  |> Enum.dedup()
+end)
+|> Stream.map(fn raw_numbers ->
+  Enum.map(raw_numbers, &Map.fetch!(digits, &1))
+end)
+|> Stream.map(&Undigiter.parse/1)
+|> Enum.sum()
+```
