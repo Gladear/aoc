@@ -1,0 +1,92 @@
+# Day 02
+
+```elixir
+input = File.stream!("./2023/input_day02.txt")
+```
+
+## Common
+
+```elixir
+defmodule Blocs do
+  @enforce_keys [:id, :sets]
+  defstruct [:id, :sets]
+
+  def parse_entry(line) do
+    line = String.trim_trailing(line)
+
+    [game_str, sets_str] = String.split(line, ":", parts: 2)
+    id = parse_id(game_str)
+    sets = parse_sets(sets_str)
+
+    %__MODULE__{
+      id: id,
+      sets: sets
+    }
+  end
+
+  defp parse_id("Game " <> id) do
+    String.to_integer(id)
+  end
+
+  defp parse_sets(sets_str) do
+    sets_str
+    |> String.split(";")
+    |> Enum.map(fn set_str ->
+      cubes_str = String.split(set_str, ",")
+      Enum.map(cubes_str, &parse_cube/1)
+    end)
+  end
+
+  defp parse_cube(cube_str) do
+    [nb_str, color_str] = String.split(cube_str, " ", parts: 2, trim: true)
+    {String.to_existing_atom(color_str), String.to_integer(nb_str)}
+  end
+
+  def possible?(entry, cubes) do
+    entry.sets
+    |> List.flatten()
+    |> Enum.all?(fn {color, nb} ->
+      Map.fetch!(cubes, color) >= nb
+    end)
+  end
+
+  def minimal_set(entry) do
+    entry.sets
+    |> List.flatten()
+    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+    |> Enum.map(fn {color, list_of_nbs} ->
+      {color, Enum.max(list_of_nbs)}
+    end)
+  end
+
+  def set_power(set) do
+    Enum.reduce(set, 1, fn {_color, nb}, acc -> nb * acc end)
+  end
+end
+```
+
+## Part 1
+
+```elixir
+cubes = %{
+  red: 12,
+  green: 13,
+  blue: 14
+}
+
+input
+|> Stream.map(&Blocs.parse_entry/1)
+|> Stream.filter(&Blocs.possible?(&1, cubes))
+|> Stream.map(& &1.id)
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+input
+|> Stream.map(&Blocs.parse_entry/1)
+|> Stream.map(&Blocs.minimal_set/1)
+|> Stream.map(&Blocs.set_power/1)
+|> Enum.sum()
+```
