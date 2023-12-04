@@ -1,0 +1,151 @@
+# Day 03
+
+```elixir
+input = File.read!("./2023/input_day03.txt")
+lines = String.split(input, "\n", trim: true)
+```
+
+## Common
+
+```elixir
+defmodule Board do
+  defstruct [:grid, :by_type]
+
+  def get_cell(board, coord) do
+    board.grid[coord]
+  end
+
+  def parse_lines(lines) do
+    grid =
+      lines
+      |> Stream.with_index()
+      |> Stream.flat_map(&parse_line/1)
+      |> Map.new()
+
+    by_type =
+      Enum.group_by(
+        grid,
+        fn
+          {_coord, {:number, _}} -> :number
+          {_coord, {:ref, _, _}} -> :number
+          {_coord, {:symbol, _symbol}} -> :symbol
+          {_coord, :empty} -> :empty
+        end,
+        &elem(&1, 0)
+      )
+
+    %__MODULE__{grid: grid, by_type: by_type}
+  end
+
+  defp parse_line({line, x}) do
+    line
+    |> to_charlist()
+    |> Stream.with_index()
+    |> Stream.transform(
+      fn -> [] end,
+      fn
+        {char, y}, digits when char in ?0..?9 ->
+          coord = {x, y}
+          new_digits = [{coord, char - ?0} | digits]
+          {[], new_digits}
+
+        {char, y}, digits ->
+          coord = {x, y}
+
+          content =
+            case char do
+              ?. -> :empty
+              symbol -> {:symbol, symbol}
+            end
+
+          current_cell = {coord, content}
+          inserted_cells = process_digits(digits) ++ [current_cell]
+
+          {inserted_cells, []}
+      end,
+      fn digits -> {process_digits(digits), []} end,
+      fn _acc -> :ok end
+    )
+  end
+
+  defp process_digits(digits)
+  defp process_digits([]), do: []
+
+  defp process_digits(digits) do
+    digits = Enum.reverse(digits)
+    number = digits |> Enum.map(&elem(&1, 1)) |> Integer.undigits()
+
+    [first | others] = digits
+    first_coord = elem(first, 0)
+
+    [
+      {first_coord, {:number, number}}
+      | Enum.map(others, &{elem(&1, 0), {:ref, first_coord, number}})
+    ]
+  end
+end
+
+board = Board.parse_lines(lines)
+```
+
+## Part 1
+
+```elixir
+engine_parts =
+  for {x, y} <- board.by_type[:symbol], dx <- -1..1, dy <- -1..1 do
+    coord = {x + dx, y + dy}
+
+    case Board.get_cell(board, coord) do
+      {:number, n} -> {coord, n}
+      {:ref, ref_coord, n} -> {ref_coord, n}
+      _other -> nil
+    end
+  end
+
+engine_parts =
+  engine_parts
+  |> Enum.reject(&is_nil/1)
+  |> Enum.uniq()
+
+engine_parts
+|> Enum.map(&elem(&1, 1))
+|> Enum.sum()
+```
+
+## Part 2
+
+```elixir
+gear_ratios =
+  for gear_coord <- board.by_type[:symbol],
+      match?({:symbol, ?*}, Board.get_cell(board, gear_coord)) do
+    {x, y} = gear_coord
+
+    parts =
+      for dx <- -1..1, dy <- -1..1 do
+        part_coord = {x + dx, y + dy}
+
+        case Board.get_cell(board, part_coord) do
+          {:number, n} -> {part_coord, n}
+          {:ref, ref_coord, n} -> {ref_coord, n}
+          _other -> nil
+        end
+      end
+
+    parts =
+      parts
+      |> Enum.reject(&is_nil/1)
+      |> Enum.uniq()
+
+    case parts do
+      [{_, part1}, {_, part2}] ->
+        part1 * part2
+
+      _other ->
+        nil
+    end
+  end
+
+gear_ratios
+|> Enum.reject(&is_nil/1)
+|> Enum.sum()
+```
