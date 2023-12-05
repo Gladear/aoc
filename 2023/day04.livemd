@@ -16,12 +16,10 @@ cards = Enum.map(lines, &Card.parse/1)
 
 ```elixir
 defmodule Card do
-  defstruct [:id, :winning, :numbers]
+  defstruct [:winning, :numbers]
 
   def parse(entry) do
-    [card_str, all_numbers] = String.split(entry, ":")
-
-    id = parse_id(card_str)
+    [_card_str, all_numbers] = String.split(entry, ":")
 
     [winning, numbers] =
       all_numbers
@@ -29,15 +27,9 @@ defmodule Card do
       |> Enum.map(&parse_numbers/1)
 
     %__MODULE__{
-      id: id,
       winning: winning,
       numbers: numbers
     }
-  end
-
-  defp parse_id(card_str) do
-    [_game, id_str] = String.split(card_str)
-    String.to_integer(id_str)
   end
 
   defp parse_numbers(numbers) do
@@ -69,25 +61,14 @@ end)
 ## Part 2
 
 ```elixir
-cards
-|> Stream.transform([1], fn card, multipliers ->
-  [multiplier | others] =
-    case multipliers do
-      [] -> [1]
-      other -> other
-    end
+default_multipliers = List.duplicate(1, Enum.count(cards))
 
+cards
+|> Stream.transform(default_multipliers, fn card, [multiplier | others] ->
   count_winning = Card.count_winning(card)
 
   {to_update, staying} = Enum.split(others, count_winning)
-
-  updated =
-    to_update
-    # ensure length
-    |> Stream.concat(Stream.repeatedly(fn -> 1 end))
-    |> Stream.take(count_winning)
-    # incr each
-    |> Enum.map(&(&1 + multiplier))
+  updated = Enum.map(to_update, &(&1 + multiplier))
 
   {[multiplier], updated ++ staying}
 end)
