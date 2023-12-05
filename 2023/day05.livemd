@@ -1,0 +1,145 @@
+# Day 05
+
+```elixir
+Mix.install(kino: "~> 0.11")
+```
+
+## Common
+
+```elixir
+import Kino.Shorts
+
+input = read_textarea("Puzzle input", monospace: true)
+lines = String.split(input, "\n")
+```
+
+```elixir
+defmodule Almanac do
+  defstruct [:seeds, :transformations]
+
+  def parse_lines_p1(lines) do
+    parse_lines(lines, &parse_seeds_p1/1)
+  end
+
+  def parse_lines_p2(lines) do
+    parse_lines(lines, &parse_seeds_p2/1)
+  end
+
+  defp parse_lines(lines, seed_parser) do
+    [raw_seeds | raw_transformations] = lines
+
+    seeds = seed_parser.(raw_seeds)
+    transformations = parse_transformations(raw_transformations)
+
+    %__MODULE__{
+      seeds: seeds,
+      transformations: transformations
+    }
+  end
+
+  defp parse_seeds_p1(raw_seeds) do
+    [_, seeds_str] = String.split(raw_seeds, ":", parts: 2)
+    seeds_str |> String.split() |> Enum.map(&String.to_integer/1)
+  end
+
+  defp parse_seeds_p2(raw_seeds) do
+    raw_seeds
+    |> parse_seeds_p1()
+    |> Enum.chunk_every(2)
+    |> Enum.map(fn [first, length] -> Range.new(first, first + length) end)
+  end
+
+  defp parse_transformations(raw_transformations) do
+    raw_transformations
+    |> Stream.chunk_by(&(&1 == ""))
+    |> Stream.reject(&(&1 == [""]))
+    |> Stream.map(fn list ->
+      raw_ranges = Enum.drop(list, 1)
+
+      Enum.map(raw_ranges, fn raw_range ->
+        [dest_start, source_start, length] =
+          raw_range
+          |> String.split()
+          |> Enum.map(&String.to_integer/1)
+
+        {dest_start, Range.new(source_start, source_start + length)}
+      end)
+    end)
+  end
+end
+```
+
+```elixir
+defmodule Utils do
+  def clamp(min, value, max) do
+    max(min, min(value, max))
+  end
+end
+```
+
+## Part 1
+
+```elixir
+almanac = Almanac.parse_lines_p1(lines)
+
+almanac.transformations
+|> Enum.reduce(almanac.seeds, fn transformation, seeds ->
+  Enum.map(seeds, fn seed ->
+    range = Enum.find(transformation, fn {_, source_range} -> seed in source_range end)
+
+    case range do
+      {dest_start, source_range} ->
+        delta = seed - source_range.first
+        dest_start + delta
+
+      nil ->
+        seed
+    end
+  end)
+end)
+|> Enum.min()
+```
+
+## Part 2
+
+```elixir
+import Utils
+
+almanac = Almanac.parse_lines_p2(lines)
+
+almanac.transformations
+|> Enum.reduce(almanac.seeds, fn transformation, seeds ->
+  transformation
+  |> Enum.reduce(seeds, fn {dest_start, source_range}, seeds ->
+    seeds
+    |> Enum.flat_map(fn
+      {:shifted, _, _} = seed ->
+        [seed]
+
+      seed ->
+        if Range.disjoint?(seed, source_range) do
+          [seed]
+        else
+          start = clamp(seed.first, source_range.first, seed.last)
+          stop = clamp(seed.first, source_range.last, seed.last)
+
+          prefix = Range.new(seed.first, start - 1, 1)
+          shifted = Range.new(start, stop, 1)
+          suffix = Range.new(stop + 1, seed.last, 1)
+
+          [prefix, {:shifted, shifted, dest_start - source_range.first}, suffix]
+        end
+    end)
+    |> Enum.reject(fn
+      {:shifted, range, _steps} -> Enum.empty?(range)
+      range -> Enum.empty?(range)
+    end)
+  end)
+  |> Enum.map(fn
+    {:shifted, range, steps} -> Range.shift(range, steps)
+    range -> range
+  end)
+end)
+|> Enum.min_by(& &1.first)
+|> Map.fetch!(:first)
+```
