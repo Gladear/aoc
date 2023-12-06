@@ -1,0 +1,66 @@
+# Day 06
+
+```elixir
+Mix.install(kino: "~> 0.11")
+```
+
+## Common
+
+```elixir
+import Kino.Shorts
+
+input = read_textarea("Puzzle input", monospace: true)
+lines = String.split(input, "\n")
+```
+
+## Part 1
+
+```elixir
+lines
+|> Enum.map(fn line ->
+  [_str | other] = String.split(line)
+  Enum.map(other, &String.to_integer/1)
+end)
+|> Enum.zip()
+|> Enum.map(fn {duration, record} ->
+  1..duration
+  |> Enum.map(fn press_time -> press_time * (duration - press_time) end)
+  |> Enum.count(&(&1 > record))
+end)
+|> Enum.reduce(1, &Kernel.*/2)
+```
+
+## Part 2
+
+```elixir
+[duration, record] =
+  Enum.map(lines, fn line ->
+    [_str, raw_number] = String.split(line, ":", part: 2)
+
+    raw_number
+    |> String.replace(" ", "")
+    |> String.to_integer()
+  end)
+
+defmodule Race do
+  def find_limit(range, duration, record, match_func)
+  def find_limit(limit..limit, _duration, _record, _match_func), do: limit
+
+  def find_limit(first..last, duration, record, match_func) do
+    press_time = first + div(last - first, 2)
+    length = press_time * (duration - press_time)
+
+    new_range =
+      if match_func.(length, record),
+        do: (press_time + 1)..last,
+        else: first..press_time
+
+    find_limit(new_range, duration, record, match_func)
+  end
+end
+
+lower_limit = Race.find_limit(1..div(duration, 2), duration, record, &(&1 < &2))
+upper_limit = Race.find_limit(div(duration, 2)..duration, duration, record, &(&1 > &2))
+
+upper_limit - lower_limit
+```
